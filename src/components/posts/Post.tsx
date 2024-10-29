@@ -4,10 +4,10 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Globe, Search, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -15,15 +15,165 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import OpenAI from 'openai';
 
 interface PostProps {
   post: PostData;
 }
 
+const openai = new OpenAI({
+  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
+});
+
+const translateText = async (text: string, targetLang: string): Promise<string> => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        { role: "system", content: "You are a helpful assistant that translates text." },
+        { role: "user", content: `Translate the following text to ${targetLang}:\n\n${text}` }
+      ],
+      max_tokens: 30
+    });
+    return response.choices[0].message.content || "Translation failed";
+  } catch (error) {
+    console.error("Translation error:", error);
+    throw new Error("Translation failed");
+  }
+};
+
+const askAboutContent = async (content: string, query: string): Promise<string> => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        { role: "system", content: "You are a helpful assistant that answers questions about given content." },
+        { role: "user", content: `Content: ${content}\n\nQuestion: ${query}` }
+      ],
+      max_tokens: 20
+    });
+    return response.choices[0].message.content || "Failed to get an answer";
+  } catch (error) {
+    console.error("Query error:", error);
+    throw new Error("Failed to get an answer");
+  }
+};
+
+interface PopoverProps {
+  trigger: React.ReactNode;
+  content: React.ReactNode;
+}
+
+function Popover({ trigger, content }: PopoverProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative inline-block">
+      <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      {isOpen && (
+        <div
+          ref={popoverRef}
+          className="absolute z-10 w-64 mt-2 bg-white rounded-md shadow-lg"
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExpandingSearchBar({ onSearch, isLoading }: { onSearch: (query: string) => void, isLoading: boolean }) {
+  const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+    }
+  }, [query]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSearch(query);
+    }
+  };
+
+  return (
+    <div className="relative mt-2">
+      <textarea
+        ref={inputRef}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Ask AI about this post..."
+        className="w-full p-2 pr-10 border rounded-md resize-none overflow-hidden min-h-[40px] max-h-[200px]"
+        rows={1}
+      />
+      <Button
+        onClick={() => onSearch(query)}
+        disabled={isLoading}
+        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+      >
+        {isLoading ? <span className="loading loading-spinner loading-sm"></span> : <Search className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
+
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
-
   const [showComments, setShowComments] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [targetLang, setTargetLang] = useState('es');
+  const [showAskAI, setShowAskAI] = useState(false);
+  const [queryResult, setQueryResult] = useState<string | null>(null);
+  const [isQuerying, setIsQuerying] = useState(false);
+
+  const handleTranslate = async () => {
+    if (isTranslating) return;
+    setIsTranslating(true);
+    try {
+      const translated = await translateText(post.content, targetLang);
+      setTranslatedContent(translated);
+    } catch (error) {
+      console.error("Translation failed:", error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleQuery = async (query: string) => {
+    if (isQuerying || !query) return;
+    setIsQuerying(true);
+    try {
+      const result = await askAboutContent(post.content, query);
+      setQueryResult(result);
+    } catch (error) {
+      console.error("Query failed:", error);
+    } finally {
+      setIsQuerying(false);
+    }
+  };
 
   return (
     <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
@@ -60,8 +210,51 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
       <Linkify>
-        <div className="whitespace-pre-line break-words">{post.content}</div>
+        <div className="whitespace-pre-line break-words">
+          {translatedContent || post.content}
+        </div>
       </Linkify>
+      <div className="flex flex-wrap items-center gap-2">
+        <Popover
+          trigger={
+            <Button variant="outline" size="sm">
+              <Globe className="mr-2 h-4 w-4" />
+              Translate
+            </Button>
+          }
+          content={
+            <div className="p-2">
+              <Input
+                type="text"
+                placeholder="Target language (e.g., es, fr, de)"
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+                className="mb-2"
+              />
+              <Button onClick={handleTranslate} disabled={isTranslating} className="w-full">
+                {isTranslating ? "Translating..." : "Translate"}
+              </Button>
+            </div>
+          }
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAskAI(!showAskAI)}
+        >
+          <Search className="mr-2 h-4 w-4" />
+          Ask AI
+        </Button>
+      </div>
+      {showAskAI && (
+        <ExpandingSearchBar onSearch={handleQuery} isLoading={isQuerying} />
+      )}
+      {queryResult && (
+        <div className="mt-2 p-3 bg-secondary rounded-lg">
+          <h4 className="font-semibold mb-1">AI Response:</h4>
+          <p className="text-sm">{queryResult}</p>
+        </div>
+      )}
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} />
       )}

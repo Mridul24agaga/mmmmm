@@ -49,10 +49,6 @@ export default function UserButton({ className }: UserButtonProps) {
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Monitor className="mr-2 size-4" />
-            Theme
-          </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent>
               <DropdownMenuItem onClick={() => setTheme("system")}>
