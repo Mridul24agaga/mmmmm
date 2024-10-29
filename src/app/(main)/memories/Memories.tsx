@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -184,7 +184,7 @@ const layouts = {
   },
 };
 
-export default function EnhancedMemoriesPage() {
+export default function Component() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [memoryText, setMemoryText] = useState('');
@@ -206,7 +206,9 @@ export default function EnhancedMemoriesPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('posts', JSON.stringify(posts));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('posts', JSON.stringify(posts));
+    }
   }, [posts]);
 
   const openModal = (post: Post) => {
@@ -227,11 +229,7 @@ export default function EnhancedMemoriesPage() {
         memoryText: memoryText.trim(),
       };
 
-      setPosts(prevPosts => {
-        const updatedPosts = [newPost, ...prevPosts];
-        localStorage.setItem('posts', JSON.stringify(updatedPosts));
-        return updatedPosts;
-      });
+      setPosts(prevPosts => [newPost, ...prevPosts]);
       setMemoryText('');
     }
   };
@@ -261,11 +259,7 @@ export default function EnhancedMemoriesPage() {
               created_at: new Date().toISOString(),
               memoryText: memoryText.trim(),
             };
-            setPosts(prevPosts => {
-              const updatedPosts = [newPost, ...prevPosts];
-              localStorage.setItem('posts', JSON.stringify(updatedPosts));
-              return updatedPosts;
-            });
+            setPosts(prevPosts => [newPost, ...prevPosts]);
           };
           img.src = e.target?.result as string;
         };
@@ -359,11 +353,7 @@ export default function EnhancedMemoriesPage() {
         filter: currentFilter,
       };
 
-      setPosts(prevPosts => {
-        const updatedPosts = [newPost, ...prevPosts];
-        localStorage.setItem('posts', JSON.stringify(updatedPosts));
-        return updatedPosts;
-      });
+      setPosts(prevPosts => [newPost, ...prevPosts]);
       setCollageImages([]);
       setShowCollagePreview(false);
       setMemoryText('');
@@ -398,9 +388,7 @@ export default function EnhancedMemoriesPage() {
     setTimeout(() => {
       html2canvas(collageElement).then(canvas => {
         const link = document.createElement('a');
-        link.download = 
-
- `collage-${post.id}.png`;
+        link.download = `collage-${post.id}.png`;
         link.href = canvas.toDataURL();
         link.click();
         document.body.removeChild(collageElement);
@@ -425,7 +413,7 @@ export default function EnhancedMemoriesPage() {
     e.dataTransfer.setData('text/plain', image.id);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e:  React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
