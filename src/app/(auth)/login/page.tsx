@@ -17,7 +17,7 @@ export default function Page() {
         {/* Company Logo */}
         <div className="text-center mb-6">
           <Image
-            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=67205c47&is=671f0ac7&hm=4fbcb965c7e399a7fdbe184b039bf9e7bc83c1f407d4d419d9fd14e5e25afe99&=&format=webp&quality=lossless"
+            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=6722ff47&is=6721adc7&hm=c2616a1fa44f9d2c48533bf2bf061a7554d7ca018b68a0a5b69514280582769b&=&format=webp&quality=lossless"
             alt="Company Logo"
             width={200}
             height={40}
@@ -25,16 +25,20 @@ export default function Page() {
           />
         </div>
         <div className="space-y-5">
-          <GoogleSignInButton />
+          <LoginForm />
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-300" />
             <span className="text-gray-500 text-sm">OR</span>
             <div className="h-px flex-1 bg-gray-300" />
           </div>
-          <LoginForm />
-          <Link href="/signup" className="block text-center text-sm text-blue-600 hover:underline">
-            Don&apos;t have an account? Sign up
-          </Link>
+          <div className="flex justify-between items-center text-sm">
+            <Link href="/signup" className="text-blue-600 hover:underline">
+              Sign up now
+            </Link>
+            <Link href="/reset" className="text-blue-600 hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
         </div>
       </div>
 

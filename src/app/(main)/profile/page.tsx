@@ -551,7 +551,7 @@ export default function ProfileManager() {
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-8 text-center">Profile Manager</h1>
       {!profileId && (
-        <Button onClick={handleCreateNew} className="mb-8 w-full max-w-md mx-auto block">Create New Profile</Button>
+        <Button onClick={handleCreateNew} className="mb-8 w-full max-w-md mx-auto block">Create Additional Profile</Button>
       )}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

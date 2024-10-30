@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -184,7 +184,7 @@ const layouts = {
   },
 };
 
-export default function Component() {
+export default function EnhancedMemoriesPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [memoryText, setMemoryText] = useState('');
@@ -206,9 +206,7 @@ export default function Component() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('posts', JSON.stringify(posts));
-    }
+    localStorage.setItem('posts', JSON.stringify(posts));
   }, [posts]);
 
   const openModal = (post: Post) => {
@@ -229,7 +227,11 @@ export default function Component() {
         memoryText: memoryText.trim(),
       };
 
-      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setPosts(prevPosts => {
+        const updatedPosts = [newPost, ...prevPosts];
+        localStorage.setItem('posts', JSON.stringify(updatedPosts));
+        return updatedPosts;
+      });
       setMemoryText('');
     }
   };
@@ -259,7 +261,11 @@ export default function Component() {
               created_at: new Date().toISOString(),
               memoryText: memoryText.trim(),
             };
-            setPosts(prevPosts => [newPost, ...prevPosts]);
+            setPosts(prevPosts => {
+              const updatedPosts = [newPost, ...prevPosts];
+              localStorage.setItem('posts', JSON.stringify(updatedPosts));
+              return updatedPosts;
+            });
           };
           img.src = e.target?.result as string;
         };
@@ -353,7 +359,11 @@ export default function Component() {
         filter: currentFilter,
       };
 
-      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setPosts(prevPosts => {
+        const updatedPosts = [newPost, ...prevPosts];
+        localStorage.setItem('posts', JSON.stringify(updatedPosts));
+        return updatedPosts;
+      });
       setCollageImages([]);
       setShowCollagePreview(false);
       setMemoryText('');
@@ -388,7 +398,9 @@ export default function Component() {
     setTimeout(() => {
       html2canvas(collageElement).then(canvas => {
         const link = document.createElement('a');
-        link.download = `collage-${post.id}.png`;
+        link.download = 
+
+ `collage-${post.id}.png`;
         link.href = canvas.toDataURL();
         link.click();
         document.body.removeChild(collageElement);
@@ -413,7 +425,7 @@ export default function Component() {
     e.dataTransfer.setData('text/plain', image.id);
   };
 
-  const handleDragOver = (e:  React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 

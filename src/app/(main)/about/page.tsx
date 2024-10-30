@@ -33,7 +33,7 @@ export default function AboutUs() {
             </div>
             <div className="mt-10 lg:mt-0 flex justify-center">
               <Image
-                src="/placeholder.svg?height=400&width=400"
+                src="https://media.discordapp.net/attachments/1193183717548638301/1297960853337018480/1729527829262.png?ex=6723087e&is=6721b6fe&hm=a73de2e2f9daa704ece4576747cf98f97304c3fa8b199dd986e802e0aa5a7312&=&format=webp&quality=lossless&width=162&height=350"
                 alt="A mosaic of cherished memories"
                 width={400}
                 height={400}
