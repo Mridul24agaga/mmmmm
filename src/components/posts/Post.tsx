@@ -23,6 +23,63 @@ interface PostProps {
   post: PostData;
 }
 
+interface HalloweenDecoration {
+  emoji: string;
+  position: string;
+  animation: string;
+  opacity: number;
+  scale: number;
+  rotation: number;
+}
+
+function RandomHalloweenDecorations() {
+  const [decorations, setDecorations] = useState<HalloweenDecoration[]>([]);
+
+  useEffect(() => {
+    const emojis = ['🎃', '👻', '🕷️', '🕸️', '💀', '🦇'];
+    const animations = [
+      'animate-float',
+      'animate-ghost-float',
+      'animate-float-random',
+      'animate-pulse'
+    ];
+    const positions = [
+      'bottom-[20%] left-2', 'bottom-[20%] right-2',
+      'bottom-[40%] left-4', 'bottom-[40%] right-4',
+      'bottom-[60%] left-6', 'bottom-[60%] right-6'
+    ];
+
+    const newDecorations = Array.from({ length: Math.floor(Math.random() * 2) + 2 }, () => ({
+      emoji: emojis[Math.floor(Math.random() * emojis.length)],
+      position: positions[Math.floor(Math.random() * positions.length)],
+      animation: animations[Math.floor(Math.random() * animations.length)],
+      opacity: Math.random() * 0.15 + 0.05,
+      scale: Math.random() * 0.5 + 0.8,
+      rotation: Math.random() * 360
+    }));
+
+    setDecorations(newDecorations);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {decorations.map((decoration, index) => (
+        <div
+          key={index}
+          className={`absolute ${decoration.position} ${decoration.animation} transition-opacity duration-300 group-hover/post:opacity-[0.15]`}
+          style={{
+            opacity: decoration.opacity,
+            transform: `scale(${decoration.scale}) rotate(${decoration.rotation}deg)`,
+            zIndex: 1
+          }}
+        >
+          {decoration.emoji}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const openai = new OpenAI({
   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true
@@ -176,7 +233,8 @@ export default function Post({ post }: PostProps) {
   };
 
   return (
-    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm relative">
+      <RandomHalloweenDecorations />
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
