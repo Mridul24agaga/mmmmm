@@ -1,13 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-<<<<<<< HEAD
-import { createUser, getUser, createPost, getPosts, likePost } from './createUser'
-=======
 import { useParams } from 'next/navigation'
 import { createUser, getUser, createPost, getPosts, likePost } from './createUser'
 import Link from 'next/link'
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
 
 interface UserProfile {
   id: string
@@ -34,19 +30,10 @@ interface Post {
   userId: string
 }
 
-<<<<<<< HEAD
-interface PageProps {
-  params: { sharedUsername?: string }
-}
-
-export default function SocialProfile({ params }: PageProps) {
-  const { sharedUsername } = params
-=======
 export default function SocialProfile() {
   const params = useParams()
   const sharedUsername = params.username as string | undefined
 
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
   const [message, setMessage] = useState('')
   const [createdUser, setCreatedUser] = useState<UserProfile | null>(null)
   const [sharedUser, setSharedUser] = useState<UserProfile | null>(null)
@@ -121,15 +108,8 @@ export default function SocialProfile() {
     fetchPosts()
   }, [user])
 
-<<<<<<< HEAD
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    const formData = new FormData(e.currentTarget)
-=======
   async function handleSubmit(formData: FormData) {
     setError(null)
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
     const result = await createUser(formData)
     if (result.success && result.user) {
       setMessage('Profile created successfully!')
@@ -165,11 +145,7 @@ export default function SocialProfile() {
     }
   }
 
-<<<<<<< HEAD
-  async function handleCreatePost(e: React.FormEvent<HTMLFormElement>) {
-=======
   async function handleCreatePost(e: React.FormEvent) {
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
     e.preventDefault()
     if (newPost.trim() && user) {
       const result = await createPost(user.username, newPost)
@@ -223,11 +199,7 @@ export default function SocialProfile() {
           <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
             <div className="px-8 py-10">
               <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Create Profile</h2>
-<<<<<<< HEAD
-              <form onSubmit={handleSubmit} className="space-y-6">
-=======
               <form action={handleSubmit} className="space-y-6">
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                     Username
@@ -350,11 +322,7 @@ export default function SocialProfile() {
                   onClick={handleLogout}
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-<<<<<<< HEAD
-                  Delete
-=======
                   Logout
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
                 </button>
               </>
             )}
