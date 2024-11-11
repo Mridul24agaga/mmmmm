@@ -29,6 +29,15 @@ export type UserData = Prisma.UserGetPayload<{
   select: ReturnType<typeof getUserDataSelect>;
 }>;
 
+export type ProfileSearchResult = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  isFollowedByUser: boolean;
+};
+
 export function getPostDataInclude(loggedInUserId: string) {
   return {
     user: {

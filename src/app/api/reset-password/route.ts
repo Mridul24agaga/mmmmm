@@ -5,6 +5,45 @@ import { hash, verify } from '@node-rs/argon2'
 
 const prisma = new PrismaClient()
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const email = searchParams.get('email')
+
+    if (!email) {
+      return NextResponse.json(
+        { success: false, error: 'Email is required' },
+        { status: 400 }
+      )
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { username: true }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      username: user.username
+    })
+
+  } catch (error: any) {
+    console.error('Error fetching username:', error)
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { email } = await request.json()
@@ -42,6 +81,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       resetToken: token,
+      username: user.username,
       message: 'Reset token created successfully'
     })
 
@@ -88,7 +128,7 @@ export async function PUT(request: Request) {
     }
 
     try {
-      // Hash the new password exactly as done in registration
+      // Hash the new password
       const hashedPassword = await hash(newPassword, {
         memoryCost: 19456,
         timeCost: 2,
@@ -115,7 +155,7 @@ export async function PUT(request: Request) {
         throw new Error('Failed to update password hash')
       }
 
-      // Double-check if the password was stored correctly
+      // Verify the new password
       const verifyPassword = await verify(updatedUser.passwordHash, newPassword, {
         memoryCost: 19456,
         timeCost: 2,
@@ -150,64 +190,4 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const emailParam = searchParams.get('email')
-    const passwordParam = searchParams.get('password')
-
-    if (!emailParam || !passwordParam) {
-      return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
-        { status: 400 }
-      )
-    }
-
-    // Hash the password using the same parameters as login
-    const hashedPassword = await hash(passwordParam, {
-      memoryCost: 19456,
-      timeCost: 2,
-      parallelism: 1,
-      outputLen: 32
-    })
-
-    if (!hashedPassword) {
-      throw new Error('Failed to hash password')
-    }
-
-    // Create new user with required fields
-    const user = await prisma.user.create({
-      data: {
-        id: crypto.randomBytes(16).toString('hex'),
-        email: emailParam,
-        passwordHash: hashedPassword,
-        username: emailParam.split('@')[0],
-        displayName: emailParam.split('@')[0]
-      },
-      select: {
-        id: true,
-        email: true,
-        username: true
-      }
-    })
-
-    return NextResponse.json({
-      success: true,
-      user,
-      message: 'User created successfully'
-    })
-
-  } catch (error: any) {
-    console.error('Error creating user:', error)
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { success: false, error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create user' },
-      { status: 500 }
-    )
-  }
-}
+console.log('Password reset route updated with fetch username functionality')

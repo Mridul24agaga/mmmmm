@@ -1,655 +1,407 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { cva, type VariantProps } from "class-variance-authority"
-import { ImageIcon, Send, Share2, ArrowLeft, Heart, MessageCircle, Upload } from 'lucide-react'
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from 'react'
+import { createUser, getUser, createPost, getPosts, likePost } from './createUser'
 
-// Button component
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
-
-interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-}
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Button.displayName = "Button"
-
-// Input component
-const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Input.displayName = "Input"
-
-// Textarea component
-const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className, ...props }, ref) => {
-    return (
-      <textarea
-        className={cn(
-          "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Textarea.displayName = "Textarea"
-
-// Label component
-const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
-  ({ className, ...props }, ref) => {
-    return (
-      <label
-        ref={ref}
-        className={cn(
-          "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-          className
-        )}
-        {...props}
-      />
-    )
-  }
-)
-Label.displayName = "Label"
-
-// Dialog components
-const Dialog = ({ open, onOpenChange, children, className }: { open?: boolean, onOpenChange?: (open: boolean) => void, children: React.ReactNode, className?: string }) => {
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" onClick={() => onOpenChange && onOpenChange(false)}>
-      <div className={cn("fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg", className)} onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-const DialogContent = ({ children }: { children: React.ReactNode }) => <div className="grid gap-4">{children}</div>
-const DialogHeader = ({ children }: { children: React.ReactNode }) => <div className="flex flex-col space-y-1.5 text-center sm:text-left">{children}</div>
-const DialogFooter = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}>
-    {children}
-  </div>
-)
-const DialogTitle = ({ children }: { children: React.ReactNode }) => <h3 className="text-lg font-semibold leading-none tracking-tight">{children}</h3>
-const DialogDescription = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>
-
-// Profile Manager Component
-interface Comment {
-  id: number;
-  content: string;
-  createdAt: string;
-  username: string;
+interface UserProfile {
+  id: string
+  username: string
+  displayName: string
+  bio: string | null
+  followers: number
+  following: number
+  isFollowing: boolean
 }
 
 interface Post {
-  id: number;
-  content: string;
-  imageUrl?: string;
-  createdAt: string;
-  likes: number;
-  comments: Comment[];
+  id: string
+  content: string
+  createdAt: string
+  likes: { userId: string }[]
+  comments: { id: string; createdAt: string; content: string; userId: string; postId: string }[]
+  bookmarks: { id: string; createdAt: string; userId: string; postId: string }[]
+  attachments: { id: string; url: string; type: string }[]
+  user: {
+    username: string
+    displayName: string
+  }
+  userId: string
 }
 
-interface Profile {
-  id: number;
-  username: string;
-  handle: string;
-  memberSince: string;
-  posts: Post[];
-  followers: number;
-  bio: string;
-  photo: string;
-  uniqueUrl: string;
+interface PageProps {
+  params: { sharedUsername?: string }
 }
 
-export default function ProfileManager() {
-  const [profiles, setProfiles] = useState<Profile[]>([])
-  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
+export default function SocialProfile({ params }: PageProps) {
+  const { sharedUsername } = params
+  const [message, setMessage] = useState('')
+  const [createdUser, setCreatedUser] = useState<UserProfile | null>(null)
+  const [sharedUser, setSharedUser] = useState<UserProfile | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [shareableLink, setShareableLink] = useState('')
+  const [posts, setPosts] = useState<Post[]>([])
   const [newPost, setNewPost] = useState('')
-  const [newPostImage, setNewPostImage] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const profileId = searchParams.get('id')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const isSharedProfile = !!sharedUsername
+  const user = isSharedProfile ? sharedUser : createdUser
 
   useEffect(() => {
-    const storedProfiles = localStorage.getItem('profiles')
-    if (storedProfiles) {
-      const parsedProfiles = JSON.parse(storedProfiles)
-      setProfiles(parsedProfiles.map((profile: Profile) => ({
-        ...profile,
-        posts: profile.posts || []
-      })))
-    }
-  }, [])
-
-  useEffect(() => {
-    if (profiles.length > 0) {
-      localStorage.setItem('profiles', JSON.stringify(profiles))
-    }
-  }, [profiles])
-
-  useEffect(() => {
-    if (profileId) {
-      const profile = profiles.find(p => p.uniqueUrl === profileId)
-      if (profile) {
-        setCurrentProfile(profile)
-      } else {
-        // If profile is not found in state, try to find it in localStorage
-        const storedProfiles = localStorage.getItem('profiles')
-        if (storedProfiles) {
-          const parsedProfiles = JSON.parse(storedProfiles)
-          const storedProfile = parsedProfiles.find((p: Profile) => p.uniqueUrl === profileId)
-          if (storedProfile) {
-            setCurrentProfile({...storedProfile, posts: storedProfile.posts || []})
-            setProfiles(parsedProfiles.map((profile: Profile) => ({
-              ...profile,
-              posts: profile.posts || []
-            })))
-          } else {
-            setCurrentProfile(null)
-          }
+    const fetchUser = async () => {
+      if (sharedUsername) {
+        const userData = await getUser(sharedUsername)
+        if (userData) {
+          setSharedUser({
+            ...userData,
+            followers: 0,
+            following: 0,
+            isFollowing: false
+          })
         } else {
-          setCurrentProfile(null)
+          setError('User not found')
+        }
+      } else {
+        const storedUsername = sessionStorage.getItem('username')
+        if (storedUsername) {
+          const userData = await getUser(storedUsername)
+          if (userData) {
+            setCreatedUser({
+              ...userData,
+              followers: 0,
+              following: 0,
+              isFollowing: false
+            })
+            setShareableLink(`${window.location.origin}/profile/${userData.username}`)
+          }
         }
       }
-    } else {
-      setCurrentProfile(null)
     }
-  }, [profileId, profiles])
+    fetchUser()
+  }, [sharedUsername])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (currentProfile) {
-      setCurrentProfile({ ...currentProfile, [e.target.name]: e.target.value })
+  useEffect(() => {
+    const fetchPosts = async () => {
+      if (user) {
+        const result = await getPosts(user.username)
+        if (result.success && Array.isArray(result.posts)) {
+          const formattedPosts: Post[] = result.posts.map(post => ({
+            ...post,
+            createdAt: new Date(post.createdAt).toISOString(),
+            comments: post.comments.map(comment => ({
+              ...comment,
+              createdAt: new Date(comment.createdAt).toISOString()
+            })),
+            bookmarks: post.bookmarks.map(bookmark => ({
+              ...bookmark,
+              createdAt: new Date(bookmark.createdAt).toISOString()
+            })),
+            user: {
+              username: user.username,
+              displayName: user.displayName
+            }
+          }))
+          setPosts(formattedPosts)
+        } else {
+          setError(result.error || 'Failed to fetch posts')
+        }
+      }
     }
-  }
+    fetchPosts()
+  }, [user])
 
-  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePhotoFile(e.target.files[0])
-    }
-  }
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    setError(null)
     const formData = new FormData(e.currentTarget)
-    const username = formData.get('username') as string
-    const bio = formData.get('bio') as string
-
-    let photo = currentProfile?.photo || ''
-    if (profilePhotoFile) {
-      // In a real application, you would upload the file to a server here
-      // For this example, we'll use a placeholder URL
-      photo = URL.createObjectURL(profilePhotoFile)
-    }
-
-    if (isEditing && currentProfile) {
-      const updatedProfile = { ...currentProfile, username, bio, photo }
-      setProfiles(profiles.map(p => p.id === currentProfile.id ? updatedProfile : p))
-      setCurrentProfile(updatedProfile)
-    } else {
-      if (profiles.length >= 5) {
-        alert('You can only create up to 5 profiles.')
-        return
-      }
-      const newProfile: Profile = {
-        id: Date.now(),
-        username,
-        handle: `@${username}`,
-        memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-        posts: [],
+    const result = await createUser(formData)
+    if (result.success && result.user) {
+      setMessage('Profile created successfully!')
+      setCreatedUser({
+        ...result.user,
         followers: 0,
-        bio,
-        photo,
-        uniqueUrl: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      }
-      setProfiles([...profiles, newProfile])
-      router.push(`?id=${newProfile.uniqueUrl}`)
-    }
-    setIsEditing(false)
-    setIsDialogOpen(false)
-    setProfilePhotoFile(null)
-  }
-
-  const handleEdit = (profile: Profile) => {
-    setCurrentProfile(profile)
-    setIsEditing(true)
-    setIsDialogOpen(true)
-  }
-
-  const handleDelete = (id: number) => {
-    const updatedProfiles = profiles.filter(p => p.id !== id)
-    setProfiles(updatedProfiles)
-    localStorage.setItem('profiles', JSON.stringify(updatedProfiles))
-    if (currentProfile && currentProfile.id === id) {
-      router.push('/')
-      setCurrentProfile(null)
+        following: 0,
+        isFollowing: false
+      })
+      sessionStorage.setItem('username', result.user.username)
+      setShareableLink(`${window.location.origin}/profile/${result.user.username}`)
+    } else {
+      setError(result.error || 'Failed to create profile. Please try again.')
     }
   }
 
-  const handleCreateNew = () => {
-    if (profiles.length >= 5) {
-      alert('You can only create up to 5 profiles.')
-      return
-    }
-    setCurrentProfile(null)
-    setIsEditing(false)
-    setIsDialogOpen(true)
+  function handleLogout() {
+    setCreatedUser(null)
+    sessionStorage.removeItem('username')
+    setMessage('Logged out successfully.')
+    setShareableLink('')
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0])
+  function toggleFollow() {
+    if (user) {
+      setCreatedUser(prev => 
+        prev ? {
+          ...prev,
+          followers: prev.isFollowing ? prev.followers - 1 : prev.followers + 1,
+          isFollowing: !prev.isFollowing
+        } : null
+      )
     }
   }
 
-  const handlePostSubmit = async (e: React.FormEvent) => {
+  async function handleCreatePost(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (currentProfile && (newPost.trim() || selectedFile)) {
-      let imageUrl
-      if (selectedFile) {
-        // In a real application, you would upload the file to a server here
-        // For this example, we'll use a placeholder URL
-        imageUrl = URL.createObjectURL(selectedFile)
+    if (newPost.trim() && user) {
+      const result = await createPost(user.username, newPost)
+      if (result.success && result.post) {
+        const newPostWithUser: Post = {
+          ...result.post,
+          createdAt: new Date().toISOString(),
+          comments: result.post.comments.map(comment => ({
+            ...comment,
+            createdAt: new Date(comment.createdAt).toISOString()
+          })),
+          bookmarks: result.post.bookmarks.map(bookmark => ({
+            ...bookmark,
+            createdAt: new Date(bookmark.createdAt).toISOString()
+          })),
+          user: {
+            username: user.username,
+            displayName: user.displayName
+          }
+        }
+        setPosts(prevPosts => [newPostWithUser, ...prevPosts])
+        setNewPost('')
+        setMessage('Post created successfully!')
+      } else {
+        setError(result.error || 'Failed to create post')
       }
-
-      const newPostObj: Post = {
-        id: Date.now(),
-        content: newPost,
-        imageUrl: imageUrl || newPostImage || undefined,
-        createdAt: new Date().toISOString(),
-        likes: 0,
-        comments: [],
-      }
-      const updatedProfile = {
-        ...currentProfile,
-        posts: [newPostObj, ...(currentProfile.posts || [])],
-      }
-      const updatedProfiles = profiles.map(p => 
-        p.id === currentProfile.id ? updatedProfile : p
-      )
-      setProfiles(updatedProfiles)
-      setCurrentProfile(updatedProfile)
-      localStorage.setItem('profiles', JSON.stringify(updatedProfiles))
-      setNewPost('')
-      setNewPostImage(null)
-      setSelectedFile(null)
     }
   }
 
-  const handleLike = (postId: number) => {
-    if (currentProfile) {
-      const updatedPosts = currentProfile.posts.map(post =>
-        post.id === postId ? { ...post, likes: post.likes + 1 } : post
-      )
-      const updatedProfile = { ...currentProfile, posts: updatedPosts }
-      const updatedProfiles = profiles.map(p =>
-        p.id === currentProfile.id ? updatedProfile : p
-      )
-      setProfiles(updatedProfiles)
-      setCurrentProfile(updatedProfile)
-      localStorage.setItem('profiles', JSON.stringify(updatedProfiles))
-    }
-  }
-
-  const handleComment = (postId: number, content: string) => {
-    if (currentProfile) {
-      const newComment: Comment = {
-        id: Date.now(),
-        content,
-        createdAt: new Date().toISOString(),
-        username: currentProfile.username,
+  async function handleLike(postId: string) {
+    if (user) {
+      const result = await likePost(postId, user.username)
+      if (result.success) {
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: [...post.likes, { userId: user.id }] } 
+              : post
+          )
+        )
+      } else {
+        setError(result.error || 'Failed to like post')
       }
-      const updatedPosts = currentProfile.posts.map(post =>
-        post.id === postId ? { ...post, comments: [...(post.comments || []), newComment] } : post
-      )
-      const updatedProfile = { ...currentProfile, posts: updatedPosts }
-      const updatedProfiles = profiles.map(p =>
-        p.id === currentProfile.id ? updatedProfile : p
-      )
-      setProfiles(updatedProfiles)
-      setCurrentProfile(updatedProfile)
-      localStorage.setItem('profiles',   JSON.stringify(updatedProfiles))
     }
   }
 
-  const handleShare = (profile: Profile) => {
-    setCurrentProfile(profile)
-    setIsShareDialogOpen(true)
-  }
-
-  const renderProfileCard = (profile: Profile) => (
-    <div key={profile.id} className="bg-white rounded-lg border shadow-lg p-6">
-      <div className="flex items-center mb-4">
-        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mr-4">
-          {profile.photo ? (
-            <img
-              src={profile.photo}
-              alt={profile.username}
-              className="w-full h-full rounded-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg?height=64&width=64';
-              }}
-            />
-          ) : (
-            <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          )}
-        </div>
-        <div>
-          <h2 className="text-xl font-bold">{profile.username}</h2>
-          <p className="text-gray-600">{profile.handle}</p>
-        </div>
-      </div>
-      <p className="text-gray-700 mb-4">{profile.bio}</p>
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500">Posts: {profile.posts ? profile.posts.length : 0}</span>
-        <Button onClick={() => router.push(`?id=${profile.uniqueUrl}`)}>View Profile</Button>
-      </div>
-    </div>
-  )
-
-  const renderProfile = (profile: Profile) => (
-    <div key={profile.id} className="bg-white rounded-lg border shadow-lg p-8 w-full">
-      <div className="flex justify-between items-center mb-6">
-        <Button variant="ghost" onClick={() => router.push('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to All Profiles
-        </Button>
-        <Button onClick={() => handleShare(profile)}>
-          <Share2 className="mr-2 h-4 w-4" />
-          Share Profile
-        </Button>
-      </div>
-      <div className="flex flex-col md:flex-row items-center md:items-start mb-6">
-        <div className="w-48 h-48 bg-gray-200 rounded-full flex items-center justify-center mb-4 md:mb-0 md:mr-8">
-          {profile.photo ? (
-            <img
-              src={profile.photo}
-              alt={profile.username}
-              className="w-full h-full rounded-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/placeholder.svg?height=192&width=192';
-              }}
-            />
-          ) : (
-            <svg className="w-24 h-24 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          )}
-        </div>
-        <div className="text-center md:text-left md:flex-grow">
-          <h2 className="text-3xl font-bold mb-2">{profile.username}</h2>
-          <p className="text-xl text-gray-600 mb-4">{profile.handle}</p>
-          <p className="text-lg text-gray-700 mb-4">{profile.bio}</p>
-          <div className="flex justify-center md:justify-start space-x-4 text-lg">
-            <span>Posts: {profile.posts ? profile.posts.length : 0}</span>
-            <span>Followers: {profile.followers}</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex justify-end mb-6">
-        <Button variant="outline" onClick={() => handleEdit(profile)}>Edit Profile</Button>
-      </div>
-      <div className="border-t pt-4">
-        <p className="text-lg text-gray-600 mb-4">Member since {profile.memberSince}</p>
-        <h3 className="text-2xl font-semibold mb-4">{profile.username}&apos;s posts</h3>
-        <form onSubmit={handlePostSubmit} className="mb-6">
-          <div className="flex items-center space-x-2 mb-2">
-            <Input
-              type="text"
-              placeholder="Please share your memories with us!"
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-              className="flex-grow"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <ImageIcon className="h-6 w-6 text-gray-400" />
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </label>
-            <Button type="submit" size="icon">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-          {selectedFile && (
-            <img
-              src={URL.createObjectURL(selectedFile)}
-              alt="Selected file"
-              className="w-20 h-20 object-cover rounded-md"
-            />
-          )}
-        </form>
-        {profile.posts && profile.posts.length > 0 ? (
-          <div className="space-y-4">
-            {profile.posts.map((post) => (
-              <div key={post.id} className="bg-gray-100 p-4 rounded-lg">
-                <p className="mb-2">{post.content}</p>
-                {post.imageUrl && (
-                  <img src={post.imageUrl} alt="Post" className="w-full h-40 object-cover rounded-md mb-2" />
-                )}
-                <p className="text-sm text-gray-500 mb-2">{new Date(post.createdAt).toLocaleString()}</p>
-                <div className="flex items-center space-x-4 mb-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleLike(post.id)}
-                  >
-                    <Heart className="h-4 w-4 mr-1" />
-                    {post.likes}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    {post.comments?.length || 0}
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {post.comments?.map((comment) => (
-                    <div key={comment.id} className="bg-white p-2 rounded">
-                      <p className="text-sm font-semibold">{comment.username}</p>
-                      <p className="text-sm">{comment.content}</p>
-                      <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()}</p>
-                    </div>
-                  )) || null}
-                </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    const form = e.target as HTMLFormElement
-                    const input = form.elements.namedItem('comment') as HTMLInputElement
-                    handleComment(post.id, input.value)
-                    form.reset()
-                  }}
-                  className="mt-2"
-                >
-                  <Input
-                    name="comment"
-                    placeholder="Add a comment..."
-                    className="w-full"
+  if (!user && !isSharedProfile) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
+            <div className="px-8 py-10">
+              <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Create Profile</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Enter your username"
                   />
-                </form>
-              </div>
-            ))}
+                </div>
+                <div>
+                  <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    id="displayName"
+                    name="displayName"
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Enter your display name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
+                    Bio
+                  </label>
+                  <textarea
+                    id="bio"
+                    name="bio"
+                    rows={3}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Tell us about yourself"
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Create Profile
+                </button>
+              </form>
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-600 italic">No posts yet.</p>
-        )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">Profile Manager</h1>
-      {!profileId && (
-        <Button onClick={handleCreateNew} className="mb-8 w-full max-w-md mx-auto block">Create Additional Profile</Button>
-      )}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Edit Profile' : 'Create New Profile'}</DialogTitle>
-            <DialogDescription>
-              {isEditing ? 'Edit your profile information below.' : 'Enter your profile information below.'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  defaultValue={currentProfile?.username || ''}
-                  placeholder="Your username"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="photo">Profile Photo</Label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    variant="outline"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Photo
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    id="photo"
-                    name="photo"
-                    accept="image/*"
-                    onChange={handleProfilePhotoChange}
-                    className="hidden"
-                  />
-                  {(profilePhotoFile || currentProfile?.photo) && (
-                    <div className="w-12 h-12 rounded-full overflow-hidden">
-                      <img
-                        src={profilePhotoFile ? URL.createObjectURL(profilePhotoFile) : currentProfile?.photo}
-                        alt="Profile preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white shadow-xl rounded-lg overflow-hidden mb-6">
+          <div className="px-8 py-10">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-4">
+                <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">{user?.displayName}</h2>
+                  <p className="text-gray-600">@{user?.username}</p>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  name="bio"
-                  defaultValue={currentProfile?.bio || ''}
-                  placeholder="Tell us about yourself"
-                />
+              {!isSharedProfile && (
+                <button
+                  onClick={toggleFollow}
+                  className={`px-6 py-2 rounded-full text-sm font-medium ${
+                    user?.isFollowing
+                      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {user?.isFollowing ? 'Following' : 'Follow'}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center space-x-6 mb-6">
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">{user?.followers}</div>
+                <div className="text-gray-600">Followers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-gray-900">{user?.following}</div>
+                <div className="text-gray-600">Following</div>
               </div>
             </div>
-            <DialogFooter className="mt-4">
-              <Button type="submit">{isEditing ? 'Update Profile' : 'Create Profile'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share Profile</DialogTitle>
-            <DialogDescription>
-              Copy the link below to share this profile:
-            </DialogDescription>
-          </DialogHeader>
-          <Input
-            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/profile?id=${currentProfile?.uniqueUrl}`}
-            readOnly
-          />
-          <DialogFooter>
-            <Button onClick={() => {
-              navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/profile?id=${currentProfile?.uniqueUrl}`)
-              alert('Link copied to clipboard!')
-            }}>
-              Copy Link
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {profileId 
-        ? (currentProfile ? renderProfile(currentProfile) : <p>Profile not found</p>)
-        : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {profiles.map(renderProfileCard)}
+            <div className="mb-6">
+              <h4 className="text-lg font-semibold mb-2 text-gray-900">Bio</h4>
+              <p className="text-gray-700">{user?.bio || 'No bio provided.'}</p>
+            </div>
+            {!isSharedProfile && (
+              <>
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold mb-2 text-gray-900">Shareable Link</h4>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={shareableLink}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareableLink)
+                        setMessage('Link copied to clipboard!')
+                      }}
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Delete
+                </button>
+              </>
+            )}
           </div>
-        )
-      }
+        </div>
+
+        {!isSharedProfile && (
+          <div className="bg-white shadow-xl rounded-lg overflow-hidden mb-6">
+            <div className="px-8 py-6">
+              <form onSubmit={handleCreatePost} className="space-y-4">
+                <textarea
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  placeholder="What's on your mind?"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  rows={3}
+                />
+                <button
+                  type="submit"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Post
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {posts.map(post => (
+            <div key={post.id} className="bg-white shadow-xl rounded-lg overflow-hidden">
+              <div className="px-8 py-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">@{post.user.username}</p>
+                    <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+                <p className="text-gray-800 mb-4">{post.content}</p>
+                <div className="flex items-center space-x-6">
+                  <button
+                    onClick={() => handleLike(post.id)}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-red-500"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                    <span>{post.likes.length}</span>
+                  </button>
+                  <div className="flex items-center space-x-2 text-gray-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <span>{post.comments.length}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+        {message && (
+          <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4">
+            <p className="text-sm text-green-700">{message}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

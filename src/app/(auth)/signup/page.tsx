@@ -16,7 +16,7 @@ export default function Page() {
         {/* Company Logo */}
         <div className="text-center">
           <Image
-            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=6722ff47&is=6721adc7&hm=c2616a1fa44f9d2c48533bf2bf061a7554d7ca018b68a0a5b69514280582769b&=&format=webp&quality=lossless" // Replace with your logo URL
+            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=672edcc7&is=672d8b47&hm=2e1f1d20a0b3e38132b93e7fc4e83d5c1045ec5b53dfb82303d298ec995b2dfd&=&format=webp&quality=lossless" // Replace with your logo URL
             alt="Company Logo"
             width={250} // Adjust width as needed
             height={50} // Adjust height as needed

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 function cn(...classes: (string | undefined)[]) {
   return classes.filter(Boolean).join(' ')
@@ -8,10 +9,28 @@ function cn(...classes: (string | undefined)[]) {
 
 export default function PasswordResetForm() {
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [resetToken, setResetToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [message, setMessage] = useState('')
   const [step, setStep] = useState(1)
+  const router = useRouter()
+
+  const handleFetchUsername = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch(`/api/reset-password?email=${encodeURIComponent(email)}`)
+      const data = await response.json()
+      if (data.success) {
+        setUsername(data.username)
+        setStep(2)
+      } else {
+        setMessage(data.error || 'Failed to fetch username.')
+      }
+    } catch (error) {
+      setMessage('An error occurred.')
+    }
+  }
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +43,7 @@ export default function PasswordResetForm() {
       const data = await response.json()
       if (data.success) {
         setMessage('Reset token sent. Use this token to reset your password: ' + data.resetToken)
-        setStep(2)
+        setStep(3)
       } else {
         setMessage(data.error || 'Failed to send reset token.')
       }
@@ -43,8 +62,10 @@ export default function PasswordResetForm() {
       })
       const data = await response.json()
       if (data.success) {
-        setMessage('Password reset successfully.')
-        setStep(1) // Return to first step after successful reset
+        setMessage('Password reset successfully. Redirecting to login page...')
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000) // Redirect after 2 seconds
       } else {
         setMessage(data.error || 'Failed to reset password.')
       }
@@ -59,15 +80,14 @@ export default function PasswordResetForm() {
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
           <CardDescription>
-            {step === 1 
-              ? "Enter your email to reset your password."
-              : "Enter the reset token and your new password."
-            }
+            {step === 1 && "Enter your email to find your account."}
+            {step === 2 && "Confirm your account details."}
+            {step === 3 && "Enter the reset token and your new password."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 1 ? (
-            <form onSubmit={handleRequestReset} className="space-y-4">
+          {step === 1 && (
+            <form onSubmit={handleFetchUsername} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -78,9 +98,22 @@ export default function PasswordResetForm() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">Request Reset</Button>
+              <Button type="submit" className="w-full">Find Account</Button>
             </form>
-          ) : (
+          )}
+          {step === 2 && (
+            <form onSubmit={handleRequestReset} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Account Found</Label>
+                <div className="p-3 bg-gray-100 rounded-md">
+                  <p className="text-sm font-medium">Username: {username}</p>
+                  <p className="text-sm">Email: {email}</p>
+                </div>
+              </div>
+              <Button type="submit" className="w-full">Request Reset Token</Button>
+            </form>
+          )}
+          {step === 3 && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="resetToken">Reset Token</Label>

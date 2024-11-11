@@ -39,7 +39,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
     { href: "/", icon: Home, title: "Home" },
     { href: "/bookmarks", icon: Bookmark, title: "Bookmarks" },
     { href: "/memories", icon: Clock, title: "Memories" },
-    { href: "/ai", icon: Bot, title: "AI Chatbot" },
+    { href: "/ai", icon: Bot, title: "Virtual Companion" },
     { href: "/forum", icon: Users, title: "Forum" },
     { href: "/profile", icon: UserCircle, title: "Profile" },
   ];
