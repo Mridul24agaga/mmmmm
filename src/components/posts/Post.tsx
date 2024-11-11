@@ -189,70 +189,15 @@ export default function Post({ post }: PostProps) {
   }, []);
 
   return (
-<<<<<<< HEAD
-    <article className="space-y-3 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="flex justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <UserTooltip user={post.user}>
-            <Link href={`/users/${post.user.username}`}>
-              <UserAvatar avatarUrl={post.user.avatarUrl} />
-            </Link>
-          </UserTooltip>
-          <div>
-=======
     <>
       <article className="space-y-3 rounded-2xl bg-card p-5 shadow-sm">
         <div className="flex justify-between gap-3">
           <div className="flex flex-wrap gap-3">
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
             <UserTooltip user={post.user}>
               <Link href={`/users/${post.user.username}`}>
                 <UserAvatar avatarUrl={post.user.avatarUrl} />
               </Link>
             </UserTooltip>
-<<<<<<< HEAD
-            <Link
-              href={`/posts/${post.id}`}
-              className="block text-sm text-muted-foreground hover:underline"
-              suppressHydrationWarning
-            >
-              {formatRelativeDate(post.createdAt)}
-            </Link>
-          </div>
-        </div>
-        {post.user.id === user.id && (
-          <PostMoreButton
-            post={post}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-          />
-        )}
-      </div>
-      <Linkify>
-        <div className="whitespace-pre-line break-words">
-          {translatedContent || post.content}
-        </div>
-      </Linkify>
-      <div className="flex flex-wrap items-center gap-2">
-        <Popover
-          trigger={
-            <Button variant="outline" size="sm">
-              <Globe className="mr-2 h-4 w-4" />
-              Translate
-            </Button>
-          }
-          content={
-            <div className="p-2">
-              <Input
-                type="text"
-                placeholder="Target language (e.g., es, fr, de)"
-                value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}
-                className="mb-2"
-              />
-              <Button onClick={handleTranslate} disabled={isTranslating} className="w-full">
-                {isTranslating ? "Translating..." : "Translate"}
-              </Button>
-=======
             <div>
               <UserTooltip user={post.user}>
                 <Link
@@ -269,7 +214,6 @@ export default function Post({ post }: PostProps) {
               >
                 {formatRelativeDate(post.createdAt)}
               </Link>
->>>>>>> fe9568006f8523d6a02f340a62d626345a51310f
             </div>
           </div>
           {post.user.id === user.id && (
