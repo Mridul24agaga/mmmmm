@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { createUser, getUser, createPost, getPosts, likePost } from './createUser'
+import Link from 'next/link'
 
 interface UserProfile {
   id: string
@@ -28,7 +30,10 @@ interface Post {
   userId: string
 }
 
-export default function SocialProfile({ sharedUsername }: { sharedUsername?: string }) {
+export default function SocialProfile() {
+  const params = useParams()
+  const sharedUsername = params.username as string | undefined
+
   const [message, setMessage] = useState('')
   const [createdUser, setCreatedUser] = useState<UserProfile | null>(null)
   const [sharedUser, setSharedUser] = useState<UserProfile | null>(null)
