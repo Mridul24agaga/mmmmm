@@ -10,7 +10,7 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-3">
         <Link href="/" className="flex-shrink-0">
           <Image
-            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=672edcc7&is=672d8b47&hm=2e1f1d20a0b3e38132b93e7fc4e83d5c1045ec5b53dfb82303d298ec995b2dfd&=&format=webp&quality=lossless"
+            src="https://media.discordapp.net/attachments/1193183717548638301/1297950957669187658/Black_Gold_White_Luxury_Royal_Crown_Logo_1_2.png?ex=6732d147&is=67317fc7&hm=68f20bf4275d9a80350461671577478d74bbeca3a98ffd1078138dfc83f95639&=&format=webp&quality=lossless"
             alt="Memories Lived Logo"
             width={150}
             height={50}
