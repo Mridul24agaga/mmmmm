@@ -175,115 +175,146 @@ export default function Post({ post }: PostProps) {
     }
   };
 
+  useEffect(() => {
+    // Add the advertisement script
+    const script = document.createElement('script');
+    script.src = "//www.highperformanceformat.com/302b41937fe3111e1778771faf64902e/invoke.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Clean up the script when component unmounts
+      document.body.removeChild(script);
+    };
+  }, []);
+
   return (
-    <article className="space-y-3 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="flex justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <UserTooltip user={post.user}>
-            <Link href={`/users/${post.user.username}`}>
-              <UserAvatar avatarUrl={post.user.avatarUrl} />
-            </Link>
-          </UserTooltip>
-          <div>
+    <>
+      <article className="space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+        <div className="flex justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
             <UserTooltip user={post.user}>
-              <Link
-                href={`/users/${post.user.username}`}
-                className="block font-medium hover:underline"
-              >
-                {post.user.displayName}
+              <Link href={`/users/${post.user.username}`}>
+                <UserAvatar avatarUrl={post.user.avatarUrl} />
               </Link>
             </UserTooltip>
-            <Link
-              href={`/posts/${post.id}`}
-              className="block text-sm text-muted-foreground hover:underline"
-              suppressHydrationWarning
-            >
-              {formatRelativeDate(post.createdAt)}
-            </Link>
-          </div>
-        </div>
-        {post.user.id === user.id && (
-          <PostMoreButton
-            post={post}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-          />
-        )}
-      </div>
-      <Linkify>
-        <div className="whitespace-pre-line break-words">
-          {translatedContent || post.content}
-        </div>
-      </Linkify>
-      <div className="flex flex-wrap items-center gap-2">
-        <Popover
-          trigger={
-            <Button variant="outline" size="sm">
-              <Globe className="mr-2 h-4 w-4" />
-              Translate
-            </Button>
-          }
-          content={
-            <div className="p-2">
-              <Input
-                type="text"
-                placeholder="Target language (e.g., es, fr, de)"
-                value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}
-                className="mb-2"
-              />
-              <Button onClick={handleTranslate} disabled={isTranslating} className="w-full">
-                {isTranslating ? "Translating..." : "Translate"}
-              </Button>
+            <div>
+              <UserTooltip user={post.user}>
+                <Link
+                  href={`/users/${post.user.username}`}
+                  className="block font-medium hover:underline"
+                >
+                  {post.user.displayName}
+                </Link>
+              </UserTooltip>
+              <Link
+                href={`/posts/${post.id}`}
+                className="block text-sm text-muted-foreground hover:underline"
+                suppressHydrationWarning
+              >
+                {formatRelativeDate(post.createdAt)}
+              </Link>
             </div>
-          }
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAskAI(!showAskAI)}
-        >
-          <Search className="mr-2 h-4 w-4" />
-          Ask AI
-        </Button>
-      </div>
-      {showAskAI && (
-        <ExpandingSearchBar onSearch={handleQuery} isLoading={isQuerying} />
-      )}
-      {queryResult && (
-        <div className="mt-2 p-3 bg-secondary rounded-lg">
-          <h4 className="font-semibold mb-1">AI Response:</h4>
-          <p className="text-sm">{queryResult}</p>
+          </div>
+          {post.user.id === user.id && (
+            <PostMoreButton
+              post={post}
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+            />
+          )}
         </div>
-      )}
-      {!!post.attachments.length && (
-        <MediaPreviews attachments={post.attachments} />
-      )}
-      <hr className="text-muted-foreground" />
-      <div className="flex justify-between gap-5">
-        <div className="flex items-center gap-5">
-          <LikeButton
+        <Linkify>
+          <div className="whitespace-pre-line break-words">
+            {translatedContent || post.content}
+          </div>
+        </Linkify>
+        <div className="flex flex-wrap items-center gap-2">
+          <Popover
+            trigger={
+              <Button variant="outline" size="sm">
+                <Globe className="mr-2 h-4 w-4" />
+                Translate
+              </Button>
+            }
+            content={
+              <div className="p-2">
+                <Input
+                  type="text"
+                  placeholder="Target language (e.g., es, fr, de)"
+                  value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value)}
+                  className="mb-2"
+                />
+                <Button onClick={handleTranslate} disabled={isTranslating} className="w-full">
+                  {isTranslating ? "Translating..." : "Translate"}
+                </Button>
+              </div>
+            }
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAskAI(!showAskAI)}
+          >
+            <Search className="mr-2 h-4 w-4" />
+            Ask AI
+          </Button>
+        </div>
+        {showAskAI && (
+          <ExpandingSearchBar onSearch={handleQuery} isLoading={isQuerying} />
+        )}
+        {queryResult && (
+          <div className="mt-2 p-3 bg-secondary rounded-lg">
+            <h4 className="font-semibold mb-1">AI Response:</h4>
+            <p className="text-sm">{queryResult}</p>
+          </div>
+        )}
+        {!!post.attachments.length && (
+          <MediaPreviews attachments={post.attachments} />
+        )}
+        <hr className="text-muted-foreground" />
+        <div className="flex justify-between gap-5">
+          <div className="flex items-center gap-5">
+            <LikeButton
+              postId={post.id}
+              initialState={{
+                likes: post._count.likes,
+                isLikedByUser: post.likes.some((like) => like.userId === user.id),
+              }}
+            />
+            <CommentButton
+              post={post}
+              onClick={() => setShowComments(!showComments)}
+            />
+          </div>
+          <BookmarkButton
             postId={post.id}
             initialState={{
-              likes: post._count.likes,
-              isLikedByUser: post.likes.some((like) => like.userId === user.id),
+              isBookmarkedByUser: post.bookmarks.some(
+                (bookmark) => bookmark.userId === user.id,
+              ),
             }}
           />
-          <CommentButton
-            post={post}
-            onClick={() => setShowComments(!showComments)}
-          />
         </div>
-        <BookmarkButton
-          postId={post.id}
-          initialState={{
-            isBookmarkedByUser: post.bookmarks.some(
-              (bookmark) => bookmark.userId === user.id,
-            ),
-          }}
-        />
+        {showComments && <Comments post={post} />}
+      </article>
+
+      {/* Advertisement */}
+      <div className="mt-4 mb-4">
+        <div id="container-302b41937fe3111e1778771faf64902e"></div>
+        <script type="text/javascript">
+          {`
+            atOptions = {
+              'key' : '302b41937fe3111e1778771faf64902e',
+              'format' : 'iframe',
+              'height' : 300,
+              'width' : 160,
+              'params' : {}
+            };
+          `}
+        </script>
       </div>
-      {showComments && <Comments post={post} />}
-    </article>
+    </>
   );
 }
 
