@@ -21,6 +21,7 @@ model User {
   createdAt             DateTime       @default(now())
   passwordResetExpiry   DateTime?
   passwordResetToken    String?
+  isPage                Boolean        @default(false)
   bookmarks             Bookmark[]
   comments              Comment[]
   following             Follow[]       @relation("Following")

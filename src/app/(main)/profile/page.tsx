@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { createUser, getUser, createPost, getPosts, likePost } from './createUser'
 import Link from 'next/link'
+import { FileText, UserCircle } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -13,6 +14,7 @@ interface UserProfile {
   followers: number
   following: number
   isFollowing: boolean
+  isPage?: boolean
 }
 
 interface Post {
@@ -26,6 +28,7 @@ interface Post {
   user: {
     username: string
     displayName: string
+    isPage?: boolean
   }
   userId: string
 }
@@ -96,7 +99,8 @@ export default function SocialProfile() {
             })),
             user: {
               username: user.username,
-              displayName: user.displayName
+              displayName: user.displayName,
+              isPage: user.isPage
             }
           }))
           setPosts(formattedPosts)
@@ -163,7 +167,8 @@ export default function SocialProfile() {
           })),
           user: {
             username: user.username,
-            displayName: user.displayName
+            displayName: user.displayName,
+            isPage: user.isPage
           }
         }
         setPosts(prevPosts => [newPostWithUser, ...prevPosts])
@@ -260,12 +265,18 @@ export default function SocialProfile() {
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-4">
                 <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <svg className="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                  </svg>
+                  <UserCircle className="w-12 h-12 text-indigo-600" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900">{user?.displayName}</h2>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-3xl font-bold text-gray-900">{user?.displayName}</h2>
+                    {user?.isPage && (
+                      <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                        <FileText className="w-4 h-4 mr-1" />
+                        Page
+                      </div>
+                    )}
+                  </div>
                   <p className="text-gray-600">@{user?.username}</p>
                 </div>
               </div>
@@ -357,12 +368,18 @@ export default function SocialProfile() {
               <div className="px-8 py-6">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
+                    <UserCircle className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">@{post.user.username}</p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium text-gray-900">@{post.user.username}</p>
+                      {post.user.isPage && (
+                        <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex items-center">
+                          <FileText className="w-3 h-3 mr-1" />
+                          Page
+                        </div>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500">{new Date(post.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
