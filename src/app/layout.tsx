@@ -1,21 +1,23 @@
-import { Toaster } from "@/components/ui/toaster";
-import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
-import type { Metadata } from "next";
-import { ThemeProvider } from "next-themes";
-import localFont from "next/font/local";
-import { extractRouterConfig } from "uploadthing/server";
-import { fileRouter } from "./api/uploadthing/core";
-import "./globals.css";
-import ReactQueryProvider from "./ReactQueryProvider";
+import { Toaster } from "@/components/ui/toaster"
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin"
+import type { Metadata } from "next"
+import { ThemeProvider } from "next-themes"
+import localFont from "next/font/local"
+import { extractRouterConfig } from "uploadthing/server"
+import { fileRouter } from "./api/uploadthing/core"
+import "./globals.css"
+import ReactQueryProvider from "./ReactQueryProvider"
+import AdScript from "@/components/AdScript"
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
-});
+})
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
-});
+})
 
 export const metadata: Metadata = {
   title: {
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     default: "Memories Lived",
   },
   description: "The app for your loved ones!",
-};
+}
 
 export default function RootLayout({
   children,
@@ -45,7 +47,8 @@ export default function RootLayout({
           </ThemeProvider>
         </ReactQueryProvider>
         <Toaster />
+        <AdScript />
       </body>
     </html>
-  );
+  )
 }

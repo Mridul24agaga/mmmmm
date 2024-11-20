@@ -1,38 +1,29 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import Post from "@/components/posts/Post";
-import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
-import kyInstance from "@/lib/ky";
-import { PostsPage, ProfileSearchResult } from "@/lib/types";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, UserCircle } from 'lucide-react';
-
-interface FollowResponse {
-  success: boolean;
-  isFollowing: boolean;
-  user: ProfileSearchResult;
-}
-
-interface MutationContext {
-  previousProfiles: ProfileSearchResult[] | undefined;
-}
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import InfiniteScrollContainer from "@/components/InfiniteScrollContainer"
+import Post from "@/components/posts/Post"
+import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton"
+import kyInstance from "@/lib/ky"
+import { PostsPage, ProfileSearchResult, FollowerInfo } from "@/lib/types"
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Loader2, UserCircle } from 'lucide-react'
+import FollowButton from "@/components/FollowButton"
 
 interface SearchResultsProps {
-  query: string;
+  query: string
 }
 
 export default function SearchResults({ query }: SearchResultsProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const router = useRouter()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!query) {
-      router.push("/");
+      router.push("/")
     }
-  }, [query, router]);
+  }, [query, router])
 
   const {
     data: profileData,
@@ -47,7 +38,7 @@ export default function SearchResults({ query }: SearchResultsProps) {
         })
         .json<ProfileSearchResult[]>(),
     enabled: !!query,
-  });
+  })
 
   const {
     data,
@@ -71,51 +62,12 @@ export default function SearchResults({ query }: SearchResultsProps) {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     gcTime: 0,
     enabled: !!query,
-  });
+  })
 
-  const followMutation = useMutation<FollowResponse, Error, string, MutationContext>({
-    mutationFn: (username: string) =>
-      kyInstance.post(`/api/users/username/${username}`).json(),
-    onMutate: async (username) => {
-      await queryClient.cancelQueries({ queryKey: ["profile-search", query] });
-      const previousProfiles = queryClient.getQueryData<ProfileSearchResult[]>(["profile-search", query]);
-      queryClient.setQueryData<ProfileSearchResult[]>(
-        ["profile-search", query],
-        (old) =>
-          old?.map((profile) =>
-            profile.username === username
-              ? { ...profile, isFollowedByUser: !profile.isFollowedByUser, followerCount: profile.isFollowedByUser ? profile.followerCount - 1 : profile.followerCount + 1 }
-              : profile
-          ) ?? []
-      );
-      return { previousProfiles };
-    },
-    onError: (err, username, context) => {
-      if (context?.previousProfiles) {
-        queryClient.setQueryData(["profile-search", query], context.previousProfiles);
-      }
-    },
-    onSuccess: (data, username) => {
-      queryClient.setQueryData<ProfileSearchResult[]>(
-        ["profile-search", query],
-        (old) =>
-          old?.map((profile) =>
-            profile.username === username
-              ? { ...data.user, isFollowedByUser: data.isFollowing }
-              : profile
-          ) ?? []
-      );
-    },
-  });
-
-  const handleFollow = (username: string) => {
-    followMutation.mutate(username);
-  };
-
-  const posts = data?.pages.flatMap((page) => page.posts) || [];
+  const posts = data?.pages.flatMap((page) => page.posts) || []
 
   if (isProfileLoading || status === "pending") {
-    return <PostsLoadingSkeleton />;
+    return <PostsLoadingSkeleton />
   }
 
   if (isProfileError && status === "error") {
@@ -123,17 +75,17 @@ export default function SearchResults({ query }: SearchResultsProps) {
       <p className="text-center text-red-500">
         An error occurred while loading search results.
       </p>
-    );
+    )
   }
 
-  const hasResults = (profileData && profileData.length > 0) || (posts.length > 0 && hasNextPage);
+  const hasResults = (profileData && profileData.length > 0) || (posts.length > 0 && hasNextPage)
 
   if (!hasResults) {
     return (
       <p className="text-center text-gray-500">
         No results found for this query.
       </p>
-    );
+    )
   }
 
   return (
@@ -163,17 +115,13 @@ export default function SearchResults({ query }: SearchResultsProps) {
                   )}
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-sm text-gray-600">{profile.followerCount} followers</span>
-                    <button
-                      onClick={() => handleFollow(profile.username)}
-                      className={`px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                        profile.isFollowedByUser
-                          ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                      disabled={followMutation.isPending}
-                    >
-                      {profile.isFollowedByUser ? 'Unfollow' : 'Follow'}
-                    </button>
+                    <FollowButton
+                      userId={profile.id}
+                      initialState={{
+                        followers: profile.followerCount,
+                        isFollowedByUser: profile.isFollowedByUser,
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -197,5 +145,5 @@ export default function SearchResults({ query }: SearchResultsProps) {
         </div>
       )}
     </div>
-  );
+  )
 }

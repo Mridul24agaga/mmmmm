@@ -49,6 +49,7 @@
     "openai": "^4.68.4",
     "prisma": "^5.22.0",
     "react": "19.0.0-rc-02c0e824-20241028",
+    "react-adsense": "^0.1.0",
     "react-cropper": "^2.3.3",
     "react-dom": "19.0.0-rc-02c0e824-20241028",
     "react-hook-form": "^7.52.1",
