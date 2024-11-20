@@ -33,7 +33,7 @@ export default function AboutUs() {
             </div>
             <div className="mt-10 lg:mt-0 flex justify-center">
               <Image
-                src="https://media.discordapp.net/attachments/1193183717548638301/1303773117335994438/1729527829262.jpg?ex=67358a96&is=67343916&hm=c4aec5b8e6decad3bf88f0b50d480c5dcdae56a5e8da53c861e978057fba9f41&=&format=webp"
+                src="https://media.discordapp.net/attachments/1193183717548638301/1303773117335994438/1729527829262.jpg?ex=673ec516&is=673d7396&hm=0864a6526073432acf068e2fd59bc109df0dc4ae943821e12bc7fa9d870eeccf&=&format=webp"
                 alt="A mosaic of cherished memories"
                 width={300}
                 height={200}

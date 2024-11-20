@@ -4,7 +4,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, Globe, Search } from "lucide-react";
+import { MessageSquare, Globe, Search } from 'lucide-react';
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -18,10 +18,8 @@ import PostMoreButton from "./PostMoreButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OpenAI from 'openai';
-
-interface PostProps {
-  post: PostData;
-}
+import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
@@ -139,8 +137,14 @@ function ExpandingSearchBar({ onSearch, isLoading }: { onSearch: (query: string)
   );
 }
 
+interface PostProps {
+  post: PostData;
+}
+
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
+  const { toast } = useToast();
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -174,6 +178,7 @@ export default function Post({ post }: PostProps) {
       setIsQuerying(false);
     }
   };
+
 
   useEffect(() => {
     // Add the advertisement script
@@ -219,7 +224,7 @@ export default function Post({ post }: PostProps) {
           {post.user.id === user.id && (
             <PostMoreButton
               post={post}
-              className="opacity-0 transition-opacity group-hover:opacity-100"
+              className="opacity-100 text-black"
             />
           )}
         </div>
