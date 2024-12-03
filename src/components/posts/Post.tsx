@@ -4,7 +4,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, Globe, Search } from 'lucide-react';
+import { MessageSquare, Globe, Search, Share2, Copy, Twitter } from 'lucide-react';
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import OpenAI from 'openai';
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const openai = new OpenAI({
   apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
@@ -152,6 +153,7 @@ export default function Post({ post }: PostProps) {
   const [showAskAI, setShowAskAI] = useState(false);
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [isQuerying, setIsQuerying] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
 
   const handleTranslate = async () => {
     if (isTranslating) return;
@@ -179,16 +181,43 @@ export default function Post({ post }: PostProps) {
     }
   };
 
+  const handleShare = (action: 'copy' | 'twitter') => {
+    const postUrl = `${window.location.origin}/posts/${post.id}`;
+    const shareText = `${post.content}\n\nwritten by memorieslived.com visit us today`;
+    
+    if (action === 'copy') {
+      navigator.clipboard.writeText(`${shareText}\n\n${postUrl}`).then(() => {
+        toast({
+          title: "Copied!",
+          description: "Post content and link copied to clipboard.",
+        });
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        toast({
+          title: "Error",
+          description: "Failed to copy text. Please try again.",
+          variant: "destructive",
+        });
+      });
+    } else if (action === 'twitter') {
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(postUrl)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      toast({
+        title: "Sharing",
+        description: "Opening Twitter to share your post.",
+      });
+    }
+
+    setShowSharePopup(false);
+  };
 
   useEffect(() => {
-    // Add the advertisement script
     const script = document.createElement('script');
     script.src = "//www.highperformanceformat.com/302b41937fe3111e1778771faf64902e/invoke.js";
     script.async = true;
     document.body.appendChild(script);
 
     return () => {
-      // Clean up the script when component unmounts
       document.body.removeChild(script);
     };
   }, []);
@@ -291,6 +320,15 @@ export default function Post({ post }: PostProps) {
               post={post}
               onClick={() => setShowComments(!showComments)}
             />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSharePopup(true)}
+              className="flex items-center gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="text-sm font-medium">Share</span>
+            </Button>
           </div>
           <BookmarkButton
             postId={post.id}
@@ -304,20 +342,34 @@ export default function Post({ post }: PostProps) {
         {showComments && <Comments post={post} />}
       </article>
 
+      {/* Social Share Popup */}
+      <Dialog open={showSharePopup} onOpenChange={setShowSharePopup}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share this post</DialogTitle>
+            <DialogDescription>
+              Choose how you&apos;d like to share this post
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col space-y-4 mt-4">
+            <Button onClick={() => handleShare('copy')} className="flex items-center justify-center w-full">
+              <Copy className="mr-2 h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+            <Button onClick={() => handleShare('twitter')} className="flex items-center justify-center w-full">
+              <Twitter className="mr-2 h-4 w-4" />
+              Share on Twitter
+            </Button>
+            <Button onClick={() => setShowSharePopup(false)} variant="outline" className="w-full">
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Advertisement */}
       <div className="mt-4 mb-4">
         <div id="container-302b41937fe3111e1778771faf64902e"></div>
-        <script type="text/javascript">
-          {`
-            atOptions = {
-              'key' : '302b41937fe3111e1778771faf64902e',
-              'format' : 'iframe',
-              'height' : 300,
-              'width' : 160,
-              'params' : {}
-            };
-          `}
-        </script>
       </div>
     </>
   );
@@ -390,3 +442,4 @@ function CommentButton({ post, onClick }: CommentButtonProps) {
     </button>
   );
 }
+

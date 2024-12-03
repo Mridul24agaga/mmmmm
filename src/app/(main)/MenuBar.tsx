@@ -1,17 +1,9 @@
+import { useState } from "react";
 import { validateRequest } from "@/auth";
 import { Button } from "@/components/ui/button";
 import prisma from "@/lib/prisma";
 import streamServerClient from "@/lib/stream";
-import { 
-  Bookmark, 
-  Home, 
-  Clock, 
-  Bot, 
-  Users, 
-  UserCircle, 
-  Info, 
-  Scale,
-} from "lucide-react";
+import { Bookmark, Home, Clock, Bot, Users, UserCircle, Info, Scale, Menu, X } from 'lucide-react';
 import Link from "next/link";
 import MessagesButton from "./MessagesButton";
 import NotificationsButton from "./NotificationsButton";
@@ -53,6 +45,13 @@ export default async function MenuBar({ className }: MenuBarProps) {
     <div className={className}>
       {/* Mobile view - horizontal scrolling */}
       <div className="flex md:hidden w-full overflow-x-auto gap-1 pb-2">
+        <Button
+          variant="ghost"
+          className="flex-shrink-0 flex items-center justify-center p-2"
+          title="Menu"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
         {menuItems.map((item) => (
           <Button
             key={item.href}
@@ -91,6 +90,14 @@ export default async function MenuBar({ className }: MenuBarProps) {
 
       {/* Desktop view - vertical stack */}
       <div className="hidden md:flex flex-col gap-1">
+        <Button
+          variant="ghost"
+          className="flex items-center justify-start gap-2 p-2 sm:p-3"
+          title="Menu"
+        >
+          <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden lg:inline">Menu</span>
+        </Button>
         {menuItems.map((item) => (
           <Button
             key={item.href}
@@ -134,3 +141,4 @@ export default async function MenuBar({ className }: MenuBarProps) {
     </div>
   );
 }
+
