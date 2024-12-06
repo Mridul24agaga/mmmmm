@@ -13,6 +13,12 @@ type Post = {
   comments: Comment[]
   likes: Like[]
   attachments: Media[]
+  user: {
+    username: string
+    displayName: string
+    isPage?: boolean
+    avatarUrl?: string | null
+  }
 }
 
 type Comment = {
@@ -84,6 +90,19 @@ export async function getUser(username: string) {
   }
 }
 
+export async function updateUserAvatar(username: string, avatarUrl: string) {
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { username },
+      data: { avatarUrl },
+    })
+    return { success: true, user: updatedUser }
+  } catch (error) {
+    console.error('Failed to update user avatar:', error)
+    return { success: false, error: 'Failed to update user avatar' }
+  }
+}
+
 export async function createPost(username: string, content: string, mediaUrls: string[] = []) {
   try {
     const user = await prisma.user.findUnique({ where: { username } })
@@ -107,6 +126,7 @@ export async function createPost(username: string, content: string, mediaUrls: s
         comments: true,
         likes: true,
         bookmarks: true,
+        user: true,
       },
     })
 
@@ -180,6 +200,7 @@ export async function getPosts(username: string) {
     const posts = await prisma.post.findMany({
       where: { userId: user.id },
       include: {
+        user: true,
         comments: true,
         likes: true,
         bookmarks: true,
@@ -249,3 +270,4 @@ export async function getBookmarkedPosts(username: string) {
     return { success: false, error: 'Failed to fetch bookmarked posts' }
   }
 }
+

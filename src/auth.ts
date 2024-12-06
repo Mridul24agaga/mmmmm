@@ -83,3 +83,9 @@ export const validateRequest = cache(
     return result;
   },
 );
+
+export const getAuthenticatedUser = async () => {
+  const { user } = await validateRequest();
+  return user;
+};
+

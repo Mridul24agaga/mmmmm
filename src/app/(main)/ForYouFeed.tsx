@@ -6,7 +6,8 @@ import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ForYouFeed() {
   const {
@@ -57,9 +58,12 @@ export default function ForYouFeed() {
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
       {posts.map((post) => (
-        <Post key={post.id} post={post} />
+        <Link key={post.id} href={`/profile/${post.user.username}?fromFeed=true`}>
+          <Post post={post} />
+        </Link>
       ))}
       {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
     </InfiniteScrollContainer>
   );
 }
+
