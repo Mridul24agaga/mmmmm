@@ -89,3 +89,26 @@ export const getAuthenticatedUser = async () => {
   return user;
 };
 
+// New functions for session management
+export const signIn = async (userId: string) => {
+  const session = await lucia.createSession(userId, {});
+  const sessionCookie = lucia.createSessionCookie(session.id);
+  cookies().set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes
+  );
+};
+
+export const signOut = async () => {
+  const { session } = await validateRequest();
+  if (!session) return;
+  await lucia.invalidateSession(session.id);
+  const sessionCookie = lucia.createBlankSessionCookie();
+  cookies().set(
+    sessionCookie.name,
+    sessionCookie.value,
+    sessionCookie.attributes
+  );
+};
+

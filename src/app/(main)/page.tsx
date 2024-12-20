@@ -19,7 +19,10 @@ function WelcomeMessage() {
       <div>
         <h2 className="font-bold text-lg">Welcome to MemoriesLived.com!</h2>
         <p className="text-sm">
-          I&apos;d like to welcome everyone to MemoriesLived.com! I created this site as a modern way to celebrate and share the lives of people we&apos;ve cared about and lost.
+          Welcome to MemoriesLived.com
+          This idea came to me after my father-in-law, Larry Knoll, was cremated, leaving us no physical place to remember him. Combined with my family being buried too far away to visit, I wanted to create a thoughtful space where anyone could grieve, laugh, love, and celebrate those they have lost—anytime, anywhere.
+          I encourage you to create a Memorial Page, add Memories pictures and stories, and follow others. You can also take advantage of topic-based public Forums, write directly to another user with Messages, exchange personally with a self-designed Virtual Companion, or convert to Diary mode to record private thoughts and feelings.
+          I hope this site brings you comfort in your time of loss.
         </p>
       </div>
     </div>

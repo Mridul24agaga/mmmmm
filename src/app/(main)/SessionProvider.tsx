@@ -8,6 +8,7 @@ interface SessionContext {
   session: Session;
 }
 
+// SessionProvider: Manages user session context for the application
 const SessionContext = createContext<SessionContext | null>(null);
 
 export default function SessionProvider({
@@ -22,7 +23,8 @@ export default function SessionProvider({
 export function useSession() {
   const context = useContext(SessionContext);
   if (!context) {
-    throw new Error("useSession must be used within a SessionProvider");
+    throw new Error("useSession must be used within a SessionProvider. Ensure this hook is called inside a component wrapped by SessionProvider.");
   }
   return context;
 }
+

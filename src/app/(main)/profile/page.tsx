@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createUser, getUser, createPost, getPosts, likePost, updateUserAvatar } from './createUser'
 import Link from 'next/link'
 import { FileText, UserCircle, Heart, MessageCircle, Loader2 } from 'lucide-react'
+import { Session, User } from "lucia"
 
 interface UserProfile {
   id: string
@@ -38,6 +39,7 @@ interface Post {
 
 export default function SocialProfile() {
   const params = useParams()
+  const router = useRouter()
   const sharedUsername = params.username as string | undefined
 
   const [message, setMessage] = useState('')
@@ -52,8 +54,29 @@ export default function SocialProfile() {
   const [isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // New state for Lucia session management
+  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+
   const isSharedProfile = !!sharedUsername
-  const user = isSharedProfile ? sharedUser : createdUser
+  const profileUser = isSharedProfile ? sharedUser : createdUser
+
+  useEffect(() => {
+    const fetchSessionAndUser = async () => {
+      try {
+        const response = await fetch('/api/auth/session')
+        if (response.ok) {
+          const data = await response.json()
+          setSession(data.session)
+          setUser(data.user)
+        }
+      } catch (error) {
+        console.error('Failed to fetch session:', error)
+      }
+    }
+
+    fetchSessionAndUser()
+  }, [])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -73,21 +96,20 @@ export default function SocialProfile() {
           } else {
             setError('User not found')
           }
-        } else {
-          const storedUsername = localStorage.getItem('username')
-          if (storedUsername) {
-            const userData = await getUser(storedUsername)
-            if (userData) {
-              setCreatedUser({
-                ...userData,
-                followers: 0,
-                following: 0,
-                isFollowing: false
-              })
-              setShareableLink(`${window.location.origin}/profile/${userData.username}`)
-              setAvatarUrl(userData.avatarUrl || null)
-              await fetchUserPosts(storedUsername)
-            }
+        } else if (user?.username) {
+          const userData = await getUser(user.username)
+          if (userData) {
+            setCreatedUser({
+              ...userData,
+              followers: 0,
+              following: 0,
+              isFollowing: false
+            })
+            setShareableLink(`${window.location.origin}/profile/${userData.username}`)
+            setAvatarUrl(userData.avatarUrl || null)
+            await fetchUserPosts(userData.username)
+          } else {
+            setError('User not found in our database')
           }
         }
       } catch (error) {
@@ -98,7 +120,7 @@ export default function SocialProfile() {
       }
     }
     fetchUser()
-  }, [sharedUsername])
+  }, [sharedUsername, user])
 
   const fetchUserPosts = async (username: string) => {
     try {
@@ -126,10 +148,16 @@ export default function SocialProfile() {
     }
   }
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setError(null)
     setIsLoading(true)
     try {
+      if (!user) {
+        setError('Please log in to create a profile')
+        return
+      }
+      const formData = new FormData(e.currentTarget)
       const result = await createUser(formData)
       if (result.success && result.user) {
         setMessage('Profile created successfully!')
@@ -139,7 +167,6 @@ export default function SocialProfile() {
           following: 0,
           isFollowing: false
         })
-        localStorage.setItem('username', result.user.username)
         setShareableLink(`${window.location.origin}/profile/${result.user.username}`)
       } else {
         setError(result.error || 'Failed to create profile. Please try again.')
@@ -152,15 +179,24 @@ export default function SocialProfile() {
     }
   }
 
-  function handleLogout() {
-    setCreatedUser(null)
-    localStorage.removeItem('username')
-    setMessage('Logged out successfully.')
-    setShareableLink('')
+  async function handleLogout() {
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST' })
+      if (response.ok) {
+        setSession(null)
+        setUser(null)
+        router.push('/login')
+      } else {
+        throw new Error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Error during logout:', error)
+      setError('Failed to logout. Please try again.')
+    }
   }
 
   function toggleFollow() {
-    if (user) {
+    if (profileUser) {
       setCreatedUser(prev => 
         prev ? {
           ...prev,
@@ -171,14 +207,14 @@ export default function SocialProfile() {
     }
   }
 
-  async function handleCreatePost(e: React.FormEvent) {
+  async function handleCreatePost(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (newPost.trim() && user) {
+    if (newPost.trim() && profileUser) {
       setIsLoading(true)
       try {
-        const result = await createPost(user.username, newPost)
+        const result = await createPost(profileUser.username, newPost)
         if (result.success && result.post) {
-          await fetchUserPosts(user.username)
+          await fetchUserPosts(profileUser.username)
           setNewPost('')
           setMessage('Post created successfully!')
         } else {
@@ -194,14 +230,14 @@ export default function SocialProfile() {
   }
 
   async function handleLike(postId: string) {
-    if (user) {
+    if (profileUser) {
       try {
-        const result = await likePost(postId, user.username)
+        const result = await likePost(postId, profileUser.username)
         if (result.success) {
           setPosts(prevPosts => 
             prevPosts.map(post => 
               post.id === postId 
-                ? { ...post, likes: [...post.likes, { userId: user.id }] } 
+                ? { ...post, likes: [...post.likes, { userId: profileUser.id }] } 
                 : post
             )
           )
@@ -253,9 +289,9 @@ export default function SocialProfile() {
 
       setAvatarUrl(avatarUrl)
       
-      if (user) {
+      if (profileUser) {
         console.log('Updating user avatar in database')
-        const result = await updateUserAvatar(user.username, avatarUrl)
+        const result = await updateUserAvatar(profileUser.username, avatarUrl)
         if (result.success) {
           setCreatedUser(prev => prev ? { ...prev, avatarUrl } : null)
           setMessage('Avatar updated successfully')
@@ -282,14 +318,14 @@ export default function SocialProfile() {
     )
   }
 
-  if (!user && !isSharedProfile) {
+  if (!profileUser && !isSharedProfile) {
     return (
       <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
           <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
             <div className="px-8 py-10">
               <h2 className="text-4xl font-bold text-center text-gray-900 mb-8">Create Profile</h2>
-              <form action={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                     Memorial Person Name
@@ -330,10 +366,16 @@ export default function SocialProfile() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={!user}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Profile
                 </button>
+                {!user && (
+                  <p className="text-sm text-red-600 mt-2">
+                    Please <Link href="/login" className="underline">log in</Link> to create a profile.
+                  </p>
+                )}
               </form>
             </div>
           </div>
@@ -366,44 +408,44 @@ export default function SocialProfile() {
                 </div>
                 <div className="mt-4 sm:mt-0 text-center sm:text-left">
                   <div className="flex items-center justify-center sm:justify-start space-x-2">
-                    <h2 className="text-3xl font-bold text-gray-900">{user?.displayName}</h2>
-                    {user?.isPage && (
+                    <h2 className="text-3xl font-bold text-gray-900">{profileUser?.displayName}</h2>
+                    {profileUser?.isPage && (
                       <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
                         <FileText className="w-4 h-4 mr-1" />
                         Page
                       </div>
                     )}
                   </div>
-                  <p className="text-gray-600">@{user?.username}</p>
+                  <p className="text-gray-600">@{profileUser?.username}</p>
                 </div>
-                {!isSharedProfile && (
+                {!isSharedProfile && user && (
                   <button
                     onClick={toggleFollow}
                     className={`mt-4 sm:mt-0 sm:ml-auto px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                      user?.isFollowing
+                      profileUser?.isFollowing
                         ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     }`}
                   >
-                    {user?.isFollowing ? 'Following' : 'Follow'}
+                    {profileUser?.isFollowing ? 'Following' : 'Follow'}
                   </button>
                 )}
               </div>
               <div className="flex items-center justify-center sm:justify-start space-x-6 mb-6">
                 <div className="text-center sm:text-left">
-                  <div className="text-xl font-bold text-gray-900">{user?.followers}</div>
+                  <div className="text-xl font-bold text-gray-900">{profileUser?.followers}</div>
                   <div className="text-gray-600">Followers</div>
                 </div>
                 <div className="text-center sm:text-left">
-                  <div className="text-xl font-bold text-gray-900">{user?.following}</div>
+                  <div className="text-xl font-bold text-gray-900">{profileUser?.following}</div>
                   <div className="text-gray-600">Following</div>
                 </div>
               </div>
               <div className="mb-6">
                 <h4 className="text-lg font-semibold mb-2 text-gray-900">Bio</h4>
-                <p className="text-gray-700">{user?.bio || 'No bio provided.'}</p>
+                <p className="text-gray-700">{profileUser?.bio || 'No bio provided.'}</p>
               </div>
-              {!isSharedProfile && (
+              {!isSharedProfile && user && (
                 <>
                   <div className="mb-6">
                     <h4 className="text-lg font-semibold mb-2 text-gray-900">Shareable Link</h4>
@@ -444,7 +486,7 @@ export default function SocialProfile() {
           </div>
         </div>
 
-        {!isSharedProfile && (
+        {!isSharedProfile && user && (
           <div className="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
             <div className="px-8 py-6">
               <form onSubmit={handleCreatePost} className="space-y-4">
@@ -516,7 +558,7 @@ export default function SocialProfile() {
                     onClick={() => handleLike(post.id)}
                     className="flex items-center space-x-2 text-gray-500 hover:text-red-500 transition-colors duration-200"
                   >
-                    <Heart className={`w-5 h-5 ${post.likes.some(like => like.userId === user?.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                    <Heart className={`w-5 h-5 ${post.likes.some(like => like.userId === profileUser?.id) ? 'fill-red-500 text-red-500' : ''}`} />
                     <span>{post.likes.length}</span>
                   </button>
                   <div className="flex items-center space-x-2 text-gray-500">
